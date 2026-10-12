@@ -27,4 +27,7 @@
 | LayerNorm | 对每个 token 的特征向量做归一化，稳定训练（先记作用） | W2 块 A |
 | pre-norm | 子层（如 Attention）之前先 LayerNorm；现代 GPT 常用。代码 `attn(ln1(x))` 从里往外读 | W2 块 A |
 | post-norm | 先 Attention 再 LayerNorm；2017 原版 Transformer 用，深层难训 | W2 块 A |
+| FFN（Feed Forward） | 每个 token 单独过两层线性：C→4C→激活→C；不在 token 之间交换信息 | W2 块 C |
+| GELU | 激活函数，给模型加入非线性；形状不变 | W2 块 C |
+| GPT block | x = x + attn(ln1(x)); x = x + ffn(ln2(x))；可叠很多层 | W2 块 C |
 | 位置编码两种做法 | sin/cos 固定公式（原版论文）vs 可学习查表（GPT-2，本仓库代码用这种） | W2 块 A |

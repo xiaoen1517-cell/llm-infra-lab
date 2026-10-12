@@ -13,7 +13,7 @@
 - 下周只改一个变量:
 ```
 
-**进度协作约定：** 你描述完成了什么 → 我更新本文件 + 对应交付物路径。当前周：`Week 2`。
+**进度协作约定：** 你描述完成了什么 → 我更新本文件 + 对应交付物路径。当前周：`Week 3`。
 
 ---
 
@@ -67,7 +67,7 @@
 | B | PyTorch broadcasting / einsum | — | ⏸️ 并入 C |
 | C | 三种 attention scores | 3h | ✅ |
 | D | AttentionHead + causal mask + loss 下降 | 4–5h | ✅ |
-| E | `notes/w01-shapes.md` + 多头流向（代码理解拆头/view/concat） | 3h | 🔄 笔记已写；合书默写 10/8 未过（scores 写成 (B,H,T,D)），10/9 重默 |
+| E | `notes/w01-shapes.md` + 多头流向（代码理解拆头/view/concat） | 3h | ✅ 10/12 默写通过（形状全对，含两次转置）；10/8 曾错 scores 形状。两次都漏写 causal mask，需重点记 |
 
 - 命令与配置: `code/w01_attention_scores.py` / `w01_attention_head.py` / `w01_multihead_attention.py`
 - 结果表: scores 三法一致；TinyLM loss→0.0016；多头 shape 链已通
@@ -82,32 +82,34 @@
 
 ## Week 2
 - GPU: 本机 / Jupyter web
-- 目标: 对照标准 Transformer——位置编码、残差、LayerNorm；画清数据流
-- 状态: 进行中 — 块 A：四个新组件（人话 + 代码）
+- 目标: 对照标准 Transformer——位置编码、残差、LayerNorm、FFN；画清数据流
+- 状态: ✅ 10/12 完成（块 B 阅读延后补）
 - 备注: 9/24 后暂停，国庆假期休息一周（约 10/1–10/7），10/8 恢复；用掉了之前超前的一周缓冲
+- 10/12 检查: 日历上应在 Week 3，实际落后约 1 周；当天完成 Week 2 剩余部分，追回大半
 
 ### 本周总 checklist（15h）
 
 | 块 | 内容 | 约时 | 状态 |
 |----|------|------|------|
 | A | 四个组件人话：PE / 残差 / LayerNorm / pre vs post；跑通带它们的代码 | 2h | ✅ 10/8；pre-norm 顺序答反已纠正（先 LN 再 Attention） |
-| B | 扫读 The Illustrated Transformer（DeepL 可开；术语进 glossary） | 2–3h | ⬜ 下一块 |
-| C | 对照差异清单 + 画数据流图进仓库 | 3–4h | ⬜ |
-| D | 写作 `notes/w02-forward.md` + 验收两问 | 3h | ⬜ |
+| B | 扫读 The Illustrated Transformer（DeepL 可开；术语进 glossary） | 2–3h | ⏸️ 10/12 按你的选择延后；文章核心（FFN）已在块 C 代码里补上，三问待读完再答 |
+| C | 补全 GPT block（多头 + FFN + 两次残差 + 叠层训练） | 3–4h | ✅ 10/12 `code/w02_gpt_block.py`，2 层 loss 3.19→0.0054；三问纠正后通过 |
+| D | 数据流图 + `notes/w02-forward.md`（每个组件「没有它会怎样」）+ 验收两问 | 3h | ✅ 10/12 验收两问在填空提示下通过 |
 
-### 块 A 要建立的四个直觉（先读再跑代码）
-
-1. **位置编码 PE**：Attention 本身不知道谁在前谁在后；给每个位置加一个「座位号」向量。
-2. **残差**：`x + f(x)`，给信息留一条不经变换的直达通道，深层更好训。
-3. **LayerNorm**：把每个 token 的特征向量「拉回」合适尺度，训练更稳（公式先不抠）。
-4. **pre-norm vs post-norm**：Norm 在子层前还是后；现代 GPT 多用 **pre-norm**。
-
-文件：`code/w02_block.py`（在 W1 TinyLM 上加上 PE + 残差 + pre-LN）
-
-做完块 A：跑通代码，用自己的话各用一句解释上面 4 个词，发我。
-
-- 命令与配置:
+- 命令与配置: `python code/w02_block.py`；`python code/w02_gpt_block.py`（CPU，约 5 秒）
 - 结果表:
+
+| 检查项 | 结果 |
+|--------|------|
+| w02_block.py 形状 | after PE / after block 为 (B,T,C)，logits 为 (B,T,V) |
+| w02_gpt_block.py（2 层，C=32，H=4，300 步） | 参数量 28,564；loss 3.1913 → 0.0054 |
+| 「去掉它会怎样」5 条 | 4 条直接通过；FFN 一条重答后通过 |
+| 验收两问 | 填空提示下通过 |
+
 - 结论（3 句）:
-- 卡点:
-- 下周只改一个变量:
+  - A GPT block is two pre-norm sublayers with residuals: attention gathers info across tokens, FFN processes each token on its own.
+  - Residuals are structure (2 per block), not tied to training steps; they let gradients reach early layers so deep stacks train.
+  - Causal mask hides future positions; padding mask hides `[PAD]` filler positions; both set scores to -inf before softmax.
+- 卡点: 残差三次与「训练」混淆（10/8、10/12 两次）——根源是把「层」和「训练步」混为一谈，已用对照表区分；FFN 曾写成 (B,H,T,D) 并一度说成「看其他 token」
+- 下周只改一个变量: Week 3 不加新结构，只对现有模型算 FLOPs 和 KV 显存
+- 待复查: 进 Week 3 前，不看笔记再答一次「残差为什么让深层网络可训练」
